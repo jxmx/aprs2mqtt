@@ -1,0 +1,54 @@
+#!/usr/bin/python3
+
+import argparse
+import os
+import re
+import sys
+import time
+
+# get the options from the CLI
+ap = argparse.ArgumentParser(description="Send an APRS message from the CLI")
+ap.add_argument("--ssid", help="APRS SSID to send as", required=True)
+ap.add_argument("--to", help="APRS SSID to send to", required=True)
+ap.add_argument("--msg", help="the message (max 67 chars)", required=True)
+ap.add_argument("--queuedir",
+    help="path to the KISS message queue (default=/var/aprs/queue)",
+    default="/var/aprs/queue",
+    )
+args = ap.parse_args()
+
+# regexp to match an APRS SSID (note this is nowhere near perfect)
+regexp = r"^[A-Z0-9]{3,6}\-[0-9]{1,2}$"
+
+# validate the formatting of the args
+try: 
+    # --ssid
+    if not re.search(regexp, args.ssid.upper()):
+        raise Exception("invalid APRS SSID format in --ssid")
+    if int(args.ssid.split("-")[1]) > 16:
+        raise Exception("--ssid must use identifiers 0 through 15")
+
+    # --to
+    if not re.search(regexp, args.to.upper()):
+        raise Exception("invalid APRS SSID format in --to")
+    if int(args.to.split("-")[1]) > 16:
+        raise Exception("--to must use identifiers 0 through 15")
+
+    # --msg
+    if len(args.msg) > 67:
+        raise Exception("--msg too long (max 67 chars)")
+
+except Exception as e:
+    sys.exit("error processing args: " + str(e))
+
+# check to make sure the KISS queue dir exists
+if not os.path.isdir(args.queuedir):
+    sys.exit("KISS queue dir " + args.queuedir + " does not exit; missing --queuedir?")
+
+# write out the file
+try:
+    f = open(os.path.join(args.queuedir,str(time.time_ns())), "w")
+    f.write("{0:s}>APN000,WIDE2-1::{1:s}:{2:s}".format(args.ssid.upper(), args.to.upper().ljust(9), args.msg))
+    f.close()
+except Exception as e:
+    sys.exit(str(e))
