@@ -1,0 +1,13 @@
+[Unit]
+Description=APRS iGate using Direwolf
+Documentation=man:direwolf
+After=network.target 
+AssertPathExists=/etc/igate.conf
+
+[Service]
+ExecStart=/usr/bin/tmux -S /var/lib/tmux/igate new-session -d -s igate /usr/local/sbin/igate
+ExecStop=/usr/bin/tmux -S /var/lib/tmux/igate kill-server
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
