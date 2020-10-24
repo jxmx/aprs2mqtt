@@ -1,2 +1,4 @@
 # aprs-wulf
-Compainion tools for direwolf to do APRS from the command line
+Various utilities to support APRS activities using [Direwolf](https://github.com/wb2osz/direwolf)
+
+
