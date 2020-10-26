@@ -29,5 +29,3 @@ def is_valid(callsign):
             return False
     else:
         return False
-
-#print(str(HamCall.is_valid("N8EI-1")))
