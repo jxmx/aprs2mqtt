@@ -90,7 +90,11 @@ if __name__ == "__main__":
 
         mq.connect(args.broker, mqttport, 60)
         mq.loop_start()
-        mqr = mq.publish(args.topic, args.msg, qos=2)
+        mqr = mq.publish(
+            args.topic,
+            args.ssid + ":" + args.to + ":" + args.msg,
+            qos=2
+            )
         
         while not mqh.published and not mqh.error and not mqh.timeout():
             mqh.timer()
