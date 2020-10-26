@@ -6,6 +6,8 @@ import re
 import sys
 import time
 
+import hamcall
+
 # get the options from the CLI
 ap = argparse.ArgumentParser(description="Send an APRS message from the CLI")
 ap.add_argument("--ssid", help="APRS SSID to send as", required=True)
@@ -23,17 +25,13 @@ regexp = r"^[A-Z0-9]{3,6}\-[0-9]{1,2}$"
 # validate the formatting of the args
 try: 
     # --ssid
-    if not re.search(regexp, args.ssid.upper()):
+    if not hamcall.is_valid(args.ssid.upper()):
         raise Exception("invalid APRS SSID format in --ssid")
-    if int(args.ssid.split("-")[1]) > 16:
-        raise Exception("--ssid must use identifiers 0 through 15")
-
+       
     # --to
-    if not re.search(regexp, args.to.upper()):
+    if not hamcall.is_valid(args.to.upper()):
         raise Exception("invalid APRS SSID format in --to")
-    if int(args.to.split("-")[1]) > 16:
-        raise Exception("--to must use identifiers 0 through 15")
-
+    
     # --msg
     if len(args.msg) > 67:
         raise Exception("--msg too long (max 67 chars)")
