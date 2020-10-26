@@ -1,0 +1,83 @@
+#!/usr/bin/python3
+
+import argparse
+import os
+import re
+import sys
+import time
+
+import paho.mqtt.client as mqtt
+
+class MQTTHandler:
+
+    error = False
+    errormsg = ""
+    published = False
+    ttime = 0
+    
+    def on_connect(self, client, userdata, flags, rc):
+        if rc != mqtt.CONNACK_ACCEPTED:
+            sys.exit(mqtt.connack_string(rc))
+        else:
+            mq.subscribe(args.topic)
+
+    def on_message(self, client, userdata, message):
+        aprsmsgs = message.payload.decode('utf-8').split(":", 2)
+        try:
+            f = open(os.path.join(args.queuedir,str(time.time_ns())), "w")
+            f.write("{0:s}>APN000,WIDE2-2::{1:s}:{2:s}".format(
+                    aprsmsgs[0].upper(),
+                    aprsmsgs[1].upper().ljust(9),
+                    aprsmsgs[2]
+                    ))
+            f.close()
+        except Exception as e:
+            sys.exit(str(e))
+
+if __name__ == "__main__":
+    # get the options from the CLI
+    ap = argparse.ArgumentParser(description="Listen to MQTT for APRS MSGs to send")
+    ap.add_argument("--broker", help="the MQTT broker FQDN or IP", required=True)
+    ap.add_argument("--user", help="the username for the MQTT broker")
+    ap.add_argument("--passwd", help="the password for the MQTT broker")
+    ap.add_argument("--topic", help="the MQTT topic", required=True)
+    ap.add_argument("--tls", help="use TLS for the MQTT connection", action="store_true")
+    ap.add_argument("--queuedir",
+        help="path to the KISS message queue (default=/var/aprs/queue)",
+        default="/var/aprs/queue",
+    )
+    args = ap.parse_args()
+
+    if not os.path.isdir(args.queuedir):
+        sys.exit("KISS queue dir " + args.queuedir + " does not exit; missing --queuedir?")
+
+    try:
+        mq = mqtt.Client()
+        mqh = MQTTHandler()        
+        mq.on_connect = mqh.on_connect
+        mq.on_message = mqh.on_message
+
+        mqttport = 1883
+        if args.tls:
+            mq.tls_set()
+            mqttport = 8883
+
+        if args.user is not None:
+            mq.username_pw_set(args.user, args.passwd)
+
+        mq.connect(args.broker, mqttport, 60)
+        mq.subscribe(args.topic)
+        mq.loop_forever()
+
+    except KeyboardInterrupt:
+        try:
+            mq.disconnect()
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
+
+    except Exception as e:
+        if str(e).find("getaddrinfo failed") > -1:
+            sys.exit("Error: unknown hostname")
+            
+        sys.exit("Error: " + str(e))
