@@ -1,8 +1,6 @@
-# Helper functions for Ham Radio Callsigns
-
 import re
 
-def is_valid(callsign):
+def aprs_ssid_is_valid(callsign):
         
     segs = callsign.split("-")
 
