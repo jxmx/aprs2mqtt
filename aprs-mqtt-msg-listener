@@ -11,27 +11,25 @@ import time
 import paho.mqtt.client as mqtt
 import hamcall
 
-# setup logging
-log = logging.getLogger()
-log.addHandler(logging.handlers.SysLogHandler(address = "/dev/log"))
-log.setLevel(logging.DEBUG)
-
 class MQTTHandler:
 
     error = False
     errormsg = ""
     published = False
     ttime = 0
-    
+    log = logging.getLogger("aprs-mqtt-msg-listener")
+
     def on_connect(self, client, userdata, flags, rc):
+        log.debug("on_connect rc: " + mqtt.connack_string(rc))
         if rc != mqtt.CONNACK_ACCEPTED:
+            log.error("could not connect to broker: " + mqtt.connack_string(rc))
             sys.exit(mqtt.connack_string(rc))
         else:
+            log.debug("on_connect subscribe: " + args.topic)
             mq.subscribe(args.topic)
 
     def on_message(self, client, userdata, message):
-
-        log.debug("in on_message")
+        log.debug("on_message with message: " + message.payload.decode('utf-8'))
         aprsmsgs = message.payload.decode('utf-8').split(":", 2)
         
         if len(aprsmsgs) == 3:
@@ -46,7 +44,7 @@ class MQTTHandler:
                     raise Exception("message body too long (max 67)")
 
                 f = open(os.path.join(args.queuedir,str(time.time_ns())), "w")
-                print("{0:s}>APN000,WIDE2-2::{1:s}:{2:s}".format(
+                log.info("sending >> {0:s}>APN000,WIDE2-2::{1:s}:{2:s}".format(
                         aprsmsgs[0].upper(),
                         aprsmsgs[1].upper().ljust(9),
                         aprsmsgs[2]
@@ -58,10 +56,10 @@ class MQTTHandler:
                         ))
                 f.close()
             except Exception as e:
-                print(str(e))
+                log.info("ignoring message with invalid item: " + str(e))
 
         else:
-            print("invalid message segments: " + message.payload.decode('utf-8'))
+            log.info("ignoring invalid message format: " + message.payload.decode('utf-8'))
 
 if __name__ == "__main__":
     # get the options from the CLI
@@ -75,12 +73,29 @@ if __name__ == "__main__":
         help="path to the KISS message queue (default=/var/aprs/queue)",
         default="/var/aprs/queue",
     )
+    ap.add_argument("--debug", help="enable debug-level logging in syslog", action="store_true")
     args = ap.parse_args()
 
+    # setup logging
+    log = logging.getLogger("aprs-mqtt-msg-listener")
+    lh = logging.handlers.SysLogHandler(address = "/dev/log", facility="daemon")
+    lf = logging.Formatter(fmt='%(name)s: %(levelname)s: %(message)s')
+    lh.setFormatter(lf)
+    log.addHandler(lh)
+ 
+    if args.debug:
+        log.setLevel(logging.DEBUG)
+    else:
+        log.setLevel(logging.INFO)
+
+    log.info("starting with queue location " + args.queuedir)
+    
     if not os.path.isdir(args.queuedir):
+        log.error("KISS queue dir " + args.queuedir + " does not exit; missing --queuedir?")
         sys.exit("KISS queue dir " + args.queuedir + " does not exit; missing --queuedir?")
 
     try:
+        log.debug("inside main try to setup client")
         mq = mqtt.Client()
         mqh = MQTTHandler()        
         mq.on_connect = mqh.on_connect
@@ -88,18 +103,22 @@ if __name__ == "__main__":
 
         mqttport = 1883
         if args.tls:
+            log.debug("using TLS due to --tls")
             mq.tls_set()
             mqttport = 8883
 
         if args.user is not None:
+            log.debug("setting user and pass due to --user")
             mq.username_pw_set(args.user, args.passwd)
 
+        log.debug("connecting")
         mq.connect(args.broker, mqttport, 60)
-        mq.subscribe(args.topic)
+        log.debug("entering mqtt.loop_forever")
         mq.loop_forever()
 
     except KeyboardInterrupt:
         try:
+            log.debug("exiting on interrupt")
             mq.disconnect()
             sys.exit(0)
         except SystemExit:
@@ -107,6 +126,7 @@ if __name__ == "__main__":
 
     except Exception as e:
         if str(e).find("getaddrinfo failed") > -1:
+            log.error("hostname not found; exiting")
             sys.exit("Error: unknown hostname")
-            
+        log.error("quitting with general error: " + str(e))    
         sys.exit("Error: " + str(e))
