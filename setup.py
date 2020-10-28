@@ -4,8 +4,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="hamutils", # Replace with your own username
-    version="0.0.1",
+    name="aprs2mqtt", # Replace with your own username
+    version="0.1.0",
     author="Jason McCormick",
     author_email="jason@mfamily.org",
     description="A collection of Ham Radio Utilities",

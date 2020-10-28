@@ -6,7 +6,7 @@ import re
 import sys
 import time
 
-import hamutils
+import aprs2mqtt
 
 # get the options from the CLI
 ap = argparse.ArgumentParser(description="Send an APRS message from the CLI")
@@ -25,11 +25,11 @@ regexp = r"^[A-Z0-9]{3,6}\-[0-9]{1,2}$"
 # validate the formatting of the args
 try: 
     # --ssid
-    if not hamutils.aprs_ssid_is_valid(args.ssid.upper()):
+    if not aprs2mqtt.aprs_ssid_is_valid(args.ssid.upper()):
         raise Exception("invalid APRS SSID format in --ssid")
        
     # --to
-    if not hamutils.aprs_ssid_is_valid(args.to.upper()):
+    if not aprs2mqtt.aprs_ssid_is_valid(args.to.upper()):
         raise Exception("invalid APRS SSID format in --to")
     
     # --msg

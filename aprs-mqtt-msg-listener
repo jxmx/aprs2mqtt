@@ -9,7 +9,7 @@ import sys
 import time
 
 import paho.mqtt.client as mqtt
-import hamutils
+import aprs2mqtt
 
 class MQTTHandler:
 
@@ -34,10 +34,10 @@ class MQTTHandler:
         
         if len(aprsmsgs) == 3:
             try:
-                if not hamutils.aprs_ssid_is_valid(aprsmsgs[0].upper()):
+                if not aprs2mqtt.aprs_ssid_is_valid(aprsmsgs[0].upper()):
                     raise Exception("invalid sending callsign: " + aprsmsgs[0].upper())
 
-                if not hamutils.aprs_ssid_is_valid(aprsmsgs[1].upper()):
+                if not aprs2mqtt.aprs_ssid_is_valid(aprsmsgs[1].upper()):
                     raise Exception("invalid recipient callsign: " + aprsmsgs[1].upper())
 
                 if len(aprsmsgs[2]) > 67:
