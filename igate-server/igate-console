@@ -1,2 +1,0 @@
-#!/bin/bash
-exec /usr/bin/tmux -S /var/lib/tmux/igate attach -r
