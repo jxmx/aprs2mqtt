@@ -8,58 +8,7 @@ import re
 import sys
 import time
 
-import paho.mqtt.client as mqtt
-import aprs2mqtt
-
-class MQTTHandler:
-
-    error = False
-    errormsg = ""
-    published = False
-    ttime = 0
-    log = logging.getLogger("aprs-mqtt-msg-listener")
-
-    def on_connect(self, client, userdata, flags, rc):
-        log.debug("on_connect rc: " + mqtt.connack_string(rc))
-        if rc != mqtt.CONNACK_ACCEPTED:
-            log.error("could not connect to broker: " + mqtt.connack_string(rc))
-            sys.exit(mqtt.connack_string(rc))
-        else:
-            log.debug("on_connect subscribe: " + args.topic)
-            mq.subscribe(args.topic)
-
-    def on_message(self, client, userdata, message):
-        log.debug("on_message with message: " + message.payload.decode('utf-8'))
-        aprsmsgs = message.payload.decode('utf-8').split(":", 2)
-        
-        if len(aprsmsgs) == 3:
-            try:
-                if not aprs2mqtt.Util.APRS2MQTTUtil.aprs_ssid_is_valid(aprsmsgs[0].upper()):
-                    raise Exception("invalid sending callsign: " + aprsmsgs[0].upper())
-
-                if not aprs2mqtt.Util.APRS2MQTTUtil.aprs_ssid_is_valid(aprsmsgs[1].upper()):
-                    raise Exception("invalid recipient callsign: " + aprsmsgs[1].upper())
-
-                if len(aprsmsgs[2]) > 67:
-                    raise Exception("message body too long (max 67)")
-
-                f = open(os.path.join(args.queuedir,str(time.time_ns())), "w")
-                log.info("sending >> {0:s}>APN000,WIDE2-2::{1:s}:{2:s}".format(
-                        aprsmsgs[0].upper(),
-                        aprsmsgs[1].upper().ljust(9),
-                        aprsmsgs[2]
-                        ))
-                f.write("{0:s}>APN000,WIDE2-2::{1:s}:{2:s}".format(
-                        aprsmsgs[0].upper(),
-                        aprsmsgs[1].upper().ljust(9),
-                        aprsmsgs[2]
-                        ))
-                f.close()
-            except Exception as e:
-                log.info("ignoring message with invalid item: " + str(e))
-
-        else:
-            log.info("ignoring invalid message format: " + message.payload.decode('utf-8'))
+from aprs2mqtt import MQTT2APRS
 
 if __name__ == "__main__":
     # get the options from the CLI
@@ -77,49 +26,39 @@ if __name__ == "__main__":
     args = ap.parse_args()
 
     # setup logging
-    log = logging.getLogger("aprs-mqtt-msg-listener")
+    log = logging.getLogger("mqtt2aprsmsg")
     lh = logging.handlers.SysLogHandler(address = "/dev/log", facility="daemon")
     lf = logging.Formatter(fmt='%(name)s: %(levelname)s: %(message)s')
     lh.setFormatter(lf)
     log.addHandler(lh)
- 
+
     if args.debug:
         log.setLevel(logging.DEBUG)
     else:
         log.setLevel(logging.INFO)
 
-    log.info("starting with queue location " + args.queuedir)
-    
-    if not os.path.isdir(args.queuedir):
-        log.error("KISS queue dir " + args.queuedir + " does not exit; missing --queuedir?")
-        sys.exit("KISS queue dir " + args.queuedir + " does not exit; missing --queuedir?")
-
     try:
         log.debug("inside main try to setup client")
-        mq = mqtt.Client()
-        mqh = MQTTHandler()        
-        mq.on_connect = mqh.on_connect
-        mq.on_message = mqh.on_message
 
-        mqttport = 1883
         if args.tls:
             log.debug("using TLS due to --tls")
-            mq.tls_set()
-            mqttport = 8883
+            usetls = True
+        else:
+            usetls = False
 
-        if args.user is not None:
-            log.debug("setting user and pass due to --user")
-            mq.username_pw_set(args.user, args.passwd)
+        m2a = MQTT2APRS.MQTT2APRS(args.broker, args.username, args.passwd, usetls)
 
-        log.debug("connecting")
-        mq.connect(args.broker, mqttport, 60)
-        log.debug("entering mqtt.loop_forever")
-        mq.loop_forever()
+        if args.queuedir is not None:
+            m2a.queuedir = args.queuedir
+        
+        m2a.topic = args.topic
+        m2a.start()
+        m2a.loop()
 
     except KeyboardInterrupt:
         try:
             log.debug("exiting on interrupt")
-            mq.disconnect()
+            m2a.stop()
             sys.exit(0)
         except SystemExit:
             os._exit(0)
