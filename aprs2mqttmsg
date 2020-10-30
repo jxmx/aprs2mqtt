@@ -7,7 +7,7 @@ import sys
 import time
 
 import paho.mqtt.client as mqtt
-import aprs2mqtt
+from aprs2mqtt.Util import APRS2MQTTUtil as aprsutil
 
 class MQTTHandler:
     # on_connect callback handlers
@@ -57,11 +57,11 @@ if __name__ == "__main__":
     # validate the formatting of the args
     try: 
         # --ssid
-        if not aprs2mqtt.Util.APRS2MQTTUtil.aprs_ssid_is_valid(args.ssid.upper()):
+        if not aprsutil.aprs_ssid_is_valid(args.ssid.upper()):
             raise Exception("invalid APRS SSID format in --ssid")
         
         # --to
-        if not aprs2mqtt.Util.APRS2MQTTUtil.aprs_ssid_is_valid(args.to.upper()):
+        if not aprsutil.aprs_ssid_is_valid(args.to.upper()):
             raise Exception("invalid APRS SSID format in --to")
         
         # --msg

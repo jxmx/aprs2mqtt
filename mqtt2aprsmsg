@@ -40,19 +40,25 @@ if __name__ == "__main__":
     try:
         log.debug("inside main try to setup client")
 
+        usetls = False
         if args.tls:
             log.debug("using TLS due to --tls")
             usetls = True
-        else:
-            usetls = False
-
-        m2a = MQTT2APRS.MQTT2APRS(args.broker, args.username, args.passwd, usetls)
-
+        
+        log.debug("get object for MQTT2APRS")
+        m2a = MQTT2APRS.MQTT2APRS()
+        m2a.log.addHandler(lh)
+        m2a.log.setLevel(logging.DEBUG)
+        m2a.prep(str(args.broker), str(args.user), str(args.passwd), bool(usetls))
+        log.debug("set queudir if set")
         if args.queuedir is not None:
             m2a.queuedir = args.queuedir
         
+        log.debug("set topic")
         m2a.topic = args.topic
+        log.debug("start()")
         m2a.start()
+        log.debug("loop()")
         m2a.loop()
 
     except KeyboardInterrupt:

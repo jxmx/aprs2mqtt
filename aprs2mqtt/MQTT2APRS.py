@@ -12,7 +12,6 @@ from .Util import APRS2MQTTUtil
 from .Exceptions import (APRSMessageException, APRSPacketException,
                          ARPSSSIDException, MQTT2APRSExecption)
 
-
 class MQTT2APRS:
     """
     Main class for managing connections with an MQTT broker and 
@@ -31,8 +30,9 @@ class MQTT2APRS:
     __MQTT_Port = 1883
     # standard TLS MQTT port
     __MQTT_TLS_Port = 8883
-    
-    log = logging.getLogger(__name__)
+
+    # log
+    log = None
 
     # hostname for the MQTT broker   
     broker = None
@@ -53,7 +53,11 @@ class MQTT2APRS:
     # username for the MQTT broker
     username = None
 
-    def __init__(self, broker, username, password, tls):
+    def __init__(self):
+        self.log = logging.getLogger(__name__)
+        self.log.addHandler(logging.NullHandler())
+        
+    def prep(self, broker, username, password, tls):
         """
         returns a ready-to-connect MQTT2APRS object if supplied with all the parameters
 
@@ -62,17 +66,24 @@ class MQTT2APRS:
         :password str broker: password to connect to the MQTT broker (optional for connecting)
         :param bool tls: 
         """
+        
         if tls is True:
+            self.log.debug("using tls")
             self.port = self.__MQTT_TLS_Port
             self.__MQTT_Client.tls_set()
 
         if username is not None:
+            self.log.debug("using username " + username)
             self.username = username
         
             if password is not None:
+                self.log.debug("using password specified")
                 self.password = password
         
             self.__MQTT_Client.username_pw_set(self.username, self.password)
+
+        self.log.debug("using broker " + broker)
+        self.broker = broker
 
         self.__MQTT_Client.on_connect = self.__on_connect
         self.__MQTT_Client.on_message = self.__on_message      
@@ -145,8 +156,8 @@ class MQTT2APRS:
         if self.topic is None:
             self.__raise_error("topic not set for {__name__}.topic; cannot start")
 
-        self.log.info("connecting to broker {0:s}:{1:i} and listening to {2:s}".format(
-            self.broker, self.port, self.topic))
+        self.log.info("connecting to broker {0:s}:{1:s} and listening to {2:s}".format(
+            self.broker, str(self.port), self.topic))
 
         self.__MQTT_Client.connect(self.broker, self.port, self.__MQTT_Keepalive)
  
