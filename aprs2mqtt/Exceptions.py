@@ -15,3 +15,9 @@ class ARPSSSIDException(Exception):
     raised when an APRS SSID/callsign fails validation
     """
     pass
+
+class MQTT2APRSExecption(Exception):
+    """
+    raised when an MQTT operation in MQTT2APRS failes or is invalid
+    """
+    pass

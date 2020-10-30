@@ -35,3 +35,16 @@ class APRS2MQTTUtil:
                 return False
         else:
             return False
+
+    @staticmethod
+    def create_aprs_msg_packet(fromssid, tossid, message, devid, path):
+        """
+        Write out an APRS MSG packet ready for AX.25 sending.
+        """
+        return str("{0:s}>{3:s},{4:s}::{1:s}:{2:s}".format(
+            fromssid.upper(),
+            tossid.upper().ljust(9),
+            message,
+            devid,
+            path
+            ))

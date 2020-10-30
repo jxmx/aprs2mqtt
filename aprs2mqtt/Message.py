@@ -28,6 +28,7 @@ class Message:
     def setsendfrom(self, sendfrom):
         """
         set the from SSID
+        
         :param str sendfrom: a valid APRS SSID
 
         returns True on success, rasises APRSSSIDException if bad SSID
