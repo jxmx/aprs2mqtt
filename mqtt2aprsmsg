@@ -48,7 +48,12 @@ if __name__ == "__main__":
         log.debug("get object for MQTT2APRS")
         m2a = MQTT2APRS.MQTT2APRS()
         m2a.log.addHandler(lh)
-        m2a.log.setLevel(logging.DEBUG)
+
+        if args.debug:
+            m2a.log.setLevel(logging.DEBUG)
+        else:
+            m2a.log.setLevel(logging.INFO)
+            
         m2a.prep(str(args.broker), str(args.user), str(args.passwd), bool(usetls))
         log.debug("set queudir if set")
         if args.queuedir is not None:
