@@ -53,12 +53,7 @@ class MQTT2APRS:
     # username for the MQTT broker
     username = None
 
-    def __init__(self, 
-        broker: str=None,
-        username: str=None,
-        password: str=None,
-        tls: bool=False,
-        ):
+    def __init__(self, broker, username, password, tls):
         """
         returns a ready-to-connect MQTT2APRS object if supplied with all the parameters
 
