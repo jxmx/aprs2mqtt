@@ -4,14 +4,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="aprs2mqtt", # Replace with your own username
-    version="0.1.0",
+    name="aprs2mqtt",
+    version="1.0.0",
     author="Jason McCormick",
     author_email="jason@mfamily.org",
-    description="A collection of Ham Radio Utilities",
+    description="Collection of utilities to interface APRS and MQTT",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/jxmx/aprs-wulf",
+    url="https://github.com/jxmx/aprs2mqtt",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
