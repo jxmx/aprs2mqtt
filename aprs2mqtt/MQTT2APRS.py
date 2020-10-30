@@ -59,7 +59,7 @@ class MQTT2APRS:
         
     def prep(self, broker, username, password, tls):
         """
-        returns a ready-to-connect MQTT2APRS object if supplied with all the parameters
+        set the connection information
 
         :param str broker: FQDN or IP address of the MQTT broker (required for connecting)
         :username str broker: username to connect the MQTT broker (optional for connecting)
