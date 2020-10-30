@@ -20,6 +20,12 @@ If you want something more production ready:
 2. Copy the contents of ./aprs2mqtt into a reasonable location found in your Python sys.path
 3. Copy the direct commands somewhere in your $PATH or wherever you want to use them
 
+Note: aprs2mqttmsg and the Python packages/modules
+should be portable to all common platforms - Windows, Linux, MacOS, etc..
+However mqtt2aprsmsg has some Linux/BSD-ish-ness to it and won't currently work well
+on Windows. True cross-platform is an eventual goal to interact with other KISS interfaces
+rather than just Direwolf/kissutil.
+
 ## Sending a Message
 
 Use the aprs2mqttmsg command to send a message. Here is an example:
