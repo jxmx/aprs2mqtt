@@ -12,7 +12,8 @@ APRS with MQTT.
 Still working on a PyPi installer. At the moment manual install is easiest.
 
 The quickest way to get started is to simply download the latest release 
-or do a 'git clone' of this repository on the latest release branch.
+or do a 'git clone' of this repository on the latest release branch. Use
+everything from the cloned/downloaded directory.
 
 If you want something more production ready:
 1. Download or 'git clone' the latest release
