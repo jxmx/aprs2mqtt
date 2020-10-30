@@ -28,7 +28,7 @@ if __name__ == "__main__":
     # setup logging
     log = logging.getLogger("mqtt2aprsmsg")
     lh = logging.handlers.SysLogHandler(address = "/dev/log", facility="daemon")
-    lf = logging.Formatter(fmt='%(name)s: %(levelname)s: %(message)s')
+    lf = logging.Formatter(fmt='mqtt2aprsmsg: %(name)s: %(levelname)s: %(message)s')
     lh.setFormatter(lf)
     log.addHandler(lh)
 
@@ -70,8 +70,9 @@ if __name__ == "__main__":
             os._exit(0)
 
     except Exception as e:
-        if str(e).find("getaddrinfo failed") > -1:
+
+        if str(e).find("getaddrinfo failed") > -1 or str(e).find("Errno -2") > -1:
             log.error("hostname not found; exiting")
-            sys.exit("Error: unknown hostname")
+            sys.exit("Error: unknown hostname")     
         log.error("quitting with general error: " + str(e))    
         sys.exit("Error: " + str(e))
