@@ -1,42 +1,14 @@
 #!/usr/bin/python3
 
 import argparse
+import logging
+import logging.handlers
 import os
 import re
 import sys
 import time
 
-import paho.mqtt.client as mqtt
-from aprs2mqtt.Util import APRS2MQTTUtil as aprsutil
-
-class MQTTHandler:
-    # on_connect callback handlers
-
-    error = False
-    errormsg = ""
-    published = False
-    ttime = 0
-
-    def on_connect(self, client, userdata, flags, rc):
-        #print("Result from connect: {}".format(mqtt.connack_string(rc)))
-        if rc != mqtt.CONNACK_ACCEPTED:
-            self.error = True
-            self.errormsg = "could not connect to broker; bad user/pass?"
-
-    def on_publish(self, client, userdata, mid):
-        self.published = True
-    
-    def timer(self):
-        self.ttime += 100
-        time.sleep(0.1)
-
-    def timeout(self):
-        if self.ttime > 2000:
-            self.error = True
-            self.errormsg = "timeout"
-            return True
-        else:
-            return False
+from aprs2mqtt import APRS2MQTT
 
 if __name__ == "__main__":
     # get the options from the CLI
@@ -48,61 +20,61 @@ if __name__ == "__main__":
     ap.add_argument("--user", help="the username for the MQTT broker")
     ap.add_argument("--passwd", help="the password for the MQTT broker")
     ap.add_argument("--topic", help="the MQTT topic", required=True)
-    ap.add_argument("--tls", help="se TLS for the MQTT connection", action="store_true")
+    ap.add_argument("--tls", help="use TLS for the MQTT connection", action="store_true")
+    ap.add_argument("--debug", help="enable debug-level logging", action="store_true")
     args = ap.parse_args()
 
-    # regexp to match an APRS SSID (note this is nowhere near perfect)
-    regexp = r"^[A-Z0-9]{3,6}\-[0-9]{1,2}$"
+   
+    log = logging.getLogger("aprs2mqttmsg")
+    lh = logging.StreamHandler()
+    lf = logging.Formatter(fmt='mqtt2aprsmsg: %(name)s: %(levelname)s: %(message)s')
+    lh.setFormatter(lf)
+    log.addHandler(lh)
 
-    # validate the formatting of the args
-    try: 
-        # --ssid
-        if not aprsutil.aprs_ssid_is_valid(args.ssid.upper()):
-            raise Exception("invalid APRS SSID format in --ssid")
-        
-        # --to
-        if not aprsutil.aprs_ssid_is_valid(args.to.upper()):
-            raise Exception("invalid APRS SSID format in --to")
-        
-        # --msg
-        if len(args.msg) > 67:
-            raise Exception("--msg too long (max 67 chars)")
-
-    except Exception as e:
-        sys.exit("error processing args: " + str(e))
+    if args.debug:
+        log.setLevel(logging.DEBUG)
+    else:
+        log.setLevel(logging.ERROR)
 
     try:
-        mq = mqtt.Client()
-        mqh = MQTTHandler()        
-        mq.on_connect = mqh.on_connect
-        mq.on_publish = mqh.on_publish
-        
-        mqttport = 1883
+        log.debug("inside main try to setup client")
+
+        usetls = False
         if args.tls:
-            mq.tls_set()
-            mqttport = 8883
+            log.debug("using TLS due to --tls")
+            usetls = True
         
-        if args.user is not None:
-            mq.username_pw_set(args.user, args.passwd)
+        log.debug("get object for APRS2MQTT")
+        a2m = APRS2MQTT.APRS2MQTT()
+        a2m.log.addHandler(lh)
 
-        mq.connect(args.broker, mqttport, 60)
-        mq.loop_start()
-        mqr = mq.publish(
-            args.topic,
-            args.ssid + ":" + args.to + ":" + args.msg,
-            qos=2
-            )
+        if args.debug:
+            a2m.log.setLevel(logging.DEBUG)
+        else:
+            a2m.log.setLevel(logging.ERROR)
         
-        while not mqh.published and not mqh.error and not mqh.timeout():
-            mqh.timer()
+        a2m.prep(str(args.broker), str(args.user), str(args.passwd), bool(usetls))
+        log.debug("set topic")
+        a2m.topic = args.topic
+        
+        a2mr = a2m.send_msg(args.ssid.upper(), args.to.upper(), args.msg)
+        
+        if a2mr is True:
+            sys.exit(0)
+        else:
+            sys.exit(1)
 
-        mq.disconnect()
-
-        if mqh.error:
-            raise Exception(mqh.errormsg)
+    except KeyboardInterrupt:
+        try:
+            log.debug("exiting on interrupt")
+            a2m.stop()
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
 
     except Exception as e:
-        if str(e).find("getaddrinfo failed") > -1:
-            sys.exit("Error: unknown hostname")
-            
+        if str(e).find("getaddrinfo failed") > -1 or str(e).find("Errno -2") > -1:
+            log.error("hostname not found; exiting")
+            sys.exit("Error: unknown hostname")     
+        log.error("quitting with general error: " + str(e))    
         sys.exit("Error: " + str(e))
