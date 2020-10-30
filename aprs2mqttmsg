@@ -1,0 +1,108 @@
+#!/usr/bin/python3
+
+import argparse
+import os
+import re
+import sys
+import time
+
+import paho.mqtt.client as mqtt
+import aprs2mqtt
+
+class MQTTHandler:
+    # on_connect callback handlers
+
+    error = False
+    errormsg = ""
+    published = False
+    ttime = 0
+
+    def on_connect(self, client, userdata, flags, rc):
+        #print("Result from connect: {}".format(mqtt.connack_string(rc)))
+        if rc != mqtt.CONNACK_ACCEPTED:
+            self.error = True
+            self.errormsg = "could not connect to broker; bad user/pass?"
+
+    def on_publish(self, client, userdata, mid):
+        self.published = True
+    
+    def timer(self):
+        self.ttime += 100
+        time.sleep(0.1)
+
+    def timeout(self):
+        if self.ttime > 2000:
+            self.error = True
+            self.errormsg = "timeout"
+            return True
+        else:
+            return False
+
+if __name__ == "__main__":
+    # get the options from the CLI
+    ap = argparse.ArgumentParser(description="Send an APRS MSG va MQTT")
+    ap.add_argument("--ssid", help="APRS SSID to send as", required=True)
+    ap.add_argument("--to", help="APRS SSID to send to", required=True)
+    ap.add_argument("--msg", help="the message (max 67 chars)", required=True)
+    ap.add_argument("--broker", help="the MQTT broker FQDN or IP", required=True)
+    ap.add_argument("--user", help="the username for the MQTT broker")
+    ap.add_argument("--passwd", help="the password for the MQTT broker")
+    ap.add_argument("--topic", help="the MQTT topic", required=True)
+    ap.add_argument("--tls", help="se TLS for the MQTT connection", action="store_true")
+    args = ap.parse_args()
+
+    # regexp to match an APRS SSID (note this is nowhere near perfect)
+    regexp = r"^[A-Z0-9]{3,6}\-[0-9]{1,2}$"
+
+    # validate the formatting of the args
+    try: 
+        # --ssid
+        if not aprs2mqtt.Util.APRS2MQTTUtil.aprs_ssid_is_valid(args.ssid.upper()):
+            raise Exception("invalid APRS SSID format in --ssid")
+        
+        # --to
+        if not aprs2mqtt.Util.APRS2MQTTUtil.aprs_ssid_is_valid(args.to.upper()):
+            raise Exception("invalid APRS SSID format in --to")
+        
+        # --msg
+        if len(args.msg) > 67:
+            raise Exception("--msg too long (max 67 chars)")
+
+    except Exception as e:
+        sys.exit("error processing args: " + str(e))
+
+    try:
+        mq = mqtt.Client()
+        mqh = MQTTHandler()        
+        mq.on_connect = mqh.on_connect
+        mq.on_publish = mqh.on_publish
+        
+        mqttport = 1883
+        if args.tls:
+            mq.tls_set()
+            mqttport = 8883
+        
+        if args.user is not None:
+            mq.username_pw_set(args.user, args.passwd)
+
+        mq.connect(args.broker, mqttport, 60)
+        mq.loop_start()
+        mqr = mq.publish(
+            args.topic,
+            args.ssid + ":" + args.to + ":" + args.msg,
+            qos=2
+            )
+        
+        while not mqh.published and not mqh.error and not mqh.timeout():
+            mqh.timer()
+
+        mq.disconnect()
+
+        if mqh.error:
+            raise Exception(mqh.errormsg)
+
+    except Exception as e:
+        if str(e).find("getaddrinfo failed") > -1:
+            sys.exit("Error: unknown hostname")
+            
+        sys.exit("Error: " + str(e))
