@@ -21,3 +21,9 @@ class MQTT2APRSExecption(Exception):
     raised when an MQTT operation in MQTT2APRS failes or is invalid
     """
     pass
+
+class APRS2MQTTExecption(Exception):
+    """
+    raised when an MQTT operation in MQTT2APRS failes or is invalid
+    """
+    pass
