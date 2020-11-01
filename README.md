@@ -15,18 +15,9 @@ Installation can be done to any Python system with
 
     python -m pip install aprs2mqtt
 
-The common scripts to run are currently packaged in the PyPi package as a Python "script"
-will installs them according to your platform. On Linux, this will put the scripts
-in the expected /usr/local/bin location. 
-
-On Windows, it's a little more complicated. List the site locations with the following:
-
-    python -m site
-
-Inside of either the sys.path if installed as root or located at USER_SITE there will 
-be a "site-packages" directory. In the same parent directory where site-packages appears
-there will be a companion folder Scripts which is where the scripts are located. Create
-a shortcut or a symlink (yes you can do that in Windows!) to them for ease of access.
+On Linux and similar systems, the scripts will be installed in /usr/local/bin
+or wherever you specify based on the pip install process. On Windows, this will
+end up in your Scripts directory which should be in your path if setup correctly.
 
 ## Portability Note
 aprs2mqttmsg and the Python packages/modules should be portable to all common 
