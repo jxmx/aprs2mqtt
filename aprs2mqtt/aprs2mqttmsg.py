@@ -8,26 +8,25 @@ import re
 import sys
 import time
 
-from aprs2mqtt import MQTT2APRS
+from aprs2mqtt import APRS2MQTT
 
-if __name__ == "__main__":
+def main():
     # get the options from the CLI
-    ap = argparse.ArgumentParser(description="Listen to MQTT for APRS MSGs to send")
+    ap = argparse.ArgumentParser(description="Send an APRS MSG va MQTT")
+    ap.add_argument("--ssid", help="APRS SSID to send as", required=True)
+    ap.add_argument("--to", help="APRS SSID to send to", required=True)
+    ap.add_argument("--msg", help="the message (max 67 chars)", required=True)
     ap.add_argument("--broker", help="the MQTT broker FQDN or IP", required=True)
     ap.add_argument("--user", help="the username for the MQTT broker")
     ap.add_argument("--passwd", help="the password for the MQTT broker")
     ap.add_argument("--topic", help="the MQTT topic", required=True)
     ap.add_argument("--tls", help="use TLS for the MQTT connection", action="store_true")
-    ap.add_argument("--queuedir",
-        help="path to the KISS message queue (default=/var/aprs/queue)",
-        default="/var/aprs/queue",
-    )
-    ap.add_argument("--debug", help="enable debug-level logging in syslog", action="store_true")
+    ap.add_argument("--debug", help="enable debug-level logging", action="store_true")
     args = ap.parse_args()
 
-    # setup logging
-    log = logging.getLogger("mqtt2aprsmsg")
-    lh = logging.handlers.SysLogHandler(address = "/dev/log", facility="daemon")
+   
+    log = logging.getLogger("aprs2mqttmsg")
+    lh = logging.StreamHandler()
     lf = logging.Formatter(fmt='mqtt2aprsmsg: %(name)s: %(levelname)s: %(message)s')
     lh.setFormatter(lf)
     log.addHandler(lh)
@@ -35,7 +34,7 @@ if __name__ == "__main__":
     if args.debug:
         log.setLevel(logging.DEBUG)
     else:
-        log.setLevel(logging.INFO)
+        log.setLevel(logging.ERROR)
 
     try:
         log.debug("inside main try to setup client")
@@ -45,39 +44,40 @@ if __name__ == "__main__":
             log.debug("using TLS due to --tls")
             usetls = True
         
-        log.debug("get object for MQTT2APRS")
-        m2a = MQTT2APRS.MQTT2APRS()
-        m2a.log.addHandler(lh)
+        log.debug("get object for APRS2MQTT")
+        a2m = APRS2MQTT.APRS2MQTT()
+        a2m.log.addHandler(lh)
 
         if args.debug:
-            m2a.log.setLevel(logging.DEBUG)
+            a2m.log.setLevel(logging.DEBUG)
         else:
-            m2a.log.setLevel(logging.INFO)
-            
-        m2a.prep(str(args.broker), str(args.user), str(args.passwd), bool(usetls))
-        log.debug("set queudir if set")
-        if args.queuedir is not None:
-            m2a.queuedir = args.queuedir
+            a2m.log.setLevel(logging.ERROR)
         
+        a2m.prep(str(args.broker), str(args.user), str(args.passwd), bool(usetls))
         log.debug("set topic")
-        m2a.topic = args.topic
-        log.debug("start()")
-        m2a.start()
-        log.debug("loop()")
-        m2a.loop()
+        a2m.topic = args.topic
+        
+        a2mr = a2m.send_msg(args.ssid.upper(), args.to.upper(), args.msg)
+        
+        if a2mr is True:
+            sys.exit(0)
+        else:
+            sys.exit(1)
 
     except KeyboardInterrupt:
         try:
             log.debug("exiting on interrupt")
-            m2a.stop()
+            a2m.stop()
             sys.exit(0)
         except SystemExit:
             os._exit(0)
 
     except Exception as e:
-
         if str(e).find("getaddrinfo failed") > -1 or str(e).find("Errno -2") > -1:
             log.error("hostname not found; exiting")
             sys.exit("Error: unknown hostname")     
         log.error("quitting with general error: " + str(e))    
         sys.exit("Error: " + str(e))
+
+if __name__ == "__main__":
+    main()

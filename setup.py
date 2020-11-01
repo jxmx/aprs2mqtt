@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="aprs2mqtt",
-    version="0.9.1",
+    version="0.9.4",
     author="Jason McCormick",
     author_email="jason@mfamily.org",
     description="Collection of utilities to interface APRS and MQTT",
@@ -19,8 +19,10 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    scripts=[
-        "aprs2mqttmsg.py",
-        "mqtt2aprsmsg.py"
-    ]
+    entry_points={
+        'console_scripts': [
+            'aprs2mqttmsg=aprs2mqtt.aprs2mqttmsg:main',
+            'mqtt2aprsmsg=aprs2mqtt.mqtt2aprsmsg:main',
+        ]
+    }
 )
