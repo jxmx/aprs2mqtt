@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="aprs2mqtt",
-    version="0.9.0",
+    version="0.9.1",
     author="Jason McCormick",
     author_email="jason@mfamily.org",
     description="Collection of utilities to interface APRS and MQTT",
@@ -19,4 +19,8 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
+    scripts=[
+        "aprs2mqttmsg.py",
+        "mqtt2aprsmsg.py"
+    ]
 )
